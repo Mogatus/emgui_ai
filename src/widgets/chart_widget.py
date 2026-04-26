@@ -125,12 +125,13 @@ class ChartWidget(QWidget):
     # --------------------------------------------------------------------- #
 
     def plot_bar_summary(self, readings: list[MeterReading], title: str = "Tagesübersicht"):
-        """Stacked bar chart – aggregated per day (kWh)."""
+        """Grouped bar chart – average Watt per day."""
         self.figure.clear()
         ax = self.figure.add_subplot(111)
 
-        # aggregate per day
+        # aggregate per day: sum + count for average
         daily: dict[str, dict[str, float]] = {}
+        daily_count: dict[str, int] = {}
         for r in readings:
             ts = r.timestamp
             if ts is None:
@@ -138,11 +139,12 @@ class ChartWidget(QWidget):
             day = ts.strftime("%Y-%m-%d")
             if day not in daily:
                 daily[day] = {"loadval": 0, "pv": 0, "grid_feed_in": 0, "grid_purchase": 0}
-            # assume each reading ≈ 1-minute interval → /60000 for kWh
+                daily_count[day] = 0
             daily[day]["loadval"] += (r.loadval or 0)
             daily[day]["pv"] += (r.pv or 0)
             daily[day]["grid_feed_in"] += (r.grid_feed_in or 0)
             daily[day]["grid_purchase"] += (r.grid_purchase or 0)
+            daily_count[day] += 1
 
         if not daily:
             ax.set_title("Keine Daten", color="white")
@@ -151,27 +153,32 @@ class ChartWidget(QWidget):
             return
 
         days = sorted(daily.keys())
-        # rough conversion: sum of W values * interval_minutes / 60 / 1000
-        # without knowing exact interval we just show raw sums scaled
-        factor = 1 / 60000  # W-minutes → kWh approx (1 reading/min)
         x_labels = [d[5:] for d in days]  # MM-DD
-        x_range = range(len(days))
 
-        for key in ["loadval", "pv", "grid_feed_in", "grid_purchase"]:
-            vals = [daily[d][key] * factor for d in days]
+        keys = ["loadval", "pv", "grid_feed_in", "grid_purchase"]
+        n_keys = len(keys)
+        bar_width = 0.8 / n_keys  # total group width ≈ 0.8
+
+        import numpy as np
+        x = np.arange(len(days))
+
+        for i, key in enumerate(keys):
+            # average Watt per day
+            vals = [daily[d][key] / daily_count[d] for d in days]
+            offset = (i - (n_keys - 1) / 2) * bar_width
             ax.bar(
-                x_range,
+                x + offset,
                 vals,
                 label=LABELS[key],
                 color=COLORS[key],
-                alpha=0.8,
-                width=0.6,
+                alpha=0.85,
+                width=bar_width,
             )
 
-        ax.set_xticks(list(x_range))
+        ax.set_xticks(list(x))
         ax.set_xticklabels(x_labels, rotation=45, fontsize=8)
         ax.set_title(title, color="white", fontsize=13, pad=10)
-        ax.set_ylabel("kWh (ca.)", color="white")
+        ax.set_ylabel("Watt (Ø)", color="white")
 
         self._style_axes(ax)
 

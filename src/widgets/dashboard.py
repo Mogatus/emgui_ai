@@ -147,7 +147,7 @@ class DashboardWidget(QWidget):
 
         self._update_kpis(readings)
         self.line_chart.plot(readings, title="Energieverlauf")
-        self.bar_chart.plot_bar_summary(readings, title="Tagesübersicht (kWh)")
+        self.bar_chart.plot_bar_summary(readings, title="Tagesübersicht (Ø Watt)")
 
     def _on_error(self, msg: str):
         self._status_label.setText("Fehler!")
