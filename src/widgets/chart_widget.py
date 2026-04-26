@@ -102,14 +102,24 @@ class ChartWidget(QWidget):
 
         ax.set_title(title, color="white", fontsize=13, pad=10)
         ax.set_ylabel("Watt", color="white")
-        ax.legend(loc="upper right", fontsize=9, framealpha=0.7)
 
         # auto-format x-axis dates
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m %H:%M"))
         self.figure.autofmt_xdate(rotation=30)
 
         self._style_axes(ax)
-        self.figure.tight_layout()
+
+        # legend below the chart, outside the plot area
+        handles, labels = ax.get_legend_handles_labels()
+        self.figure.legend(
+            handles, labels,
+            loc="lower center",
+            ncol=len(labels),
+            fontsize=9,
+            frameon=False,
+            labelcolor="white",
+        )
+        self.figure.tight_layout(rect=[0, 0.06, 1, 1])
         self.canvas.draw()
 
     # --------------------------------------------------------------------- #
@@ -162,10 +172,20 @@ class ChartWidget(QWidget):
         ax.set_xticklabels(x_labels, rotation=45, fontsize=8)
         ax.set_title(title, color="white", fontsize=13, pad=10)
         ax.set_ylabel("kWh (ca.)", color="white")
-        ax.legend(fontsize=9, framealpha=0.7)
 
         self._style_axes(ax)
-        self.figure.tight_layout()
+
+        # legend below the chart, outside the plot area
+        handles, labels = ax.get_legend_handles_labels()
+        self.figure.legend(
+            handles, labels,
+            loc="lower center",
+            ncol=len(labels),
+            fontsize=9,
+            frameon=False,
+            labelcolor="white",
+        )
+        self.figure.tight_layout(rect=[0, 0.08, 1, 1])
         self.canvas.draw()
 
     # --------------------------------------------------------------------- #
