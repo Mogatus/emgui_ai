@@ -12,7 +12,8 @@ from matplotlib.figure import Figure
 import matplotlib.dates as mdates
 import matplotlib.ticker as ticker
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout
+from PyQt6.QtCore import QPoint
+from PyQt6.QtWidgets import QToolTip, QWidget, QVBoxLayout
 
 from src.models import MeterReading
 
@@ -47,6 +48,13 @@ class ChartWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.toolbar)
         layout.addWidget(self.canvas)
+
+        # tooltip state
+        self._daily_data: dict[str, dict[str, float]] = {}
+        self._daily_count: dict[str, int] = {}
+        self._tick_labels: list[str] = []   # display labels (MM-DD)
+        self._tick_days: list[str] = []     # full date keys (YYYY-MM-DD)
+        self._hover_cid: int | None = None
 
     # --------------------------------------------------------------------- #
 
@@ -193,7 +201,62 @@ class ChartWidget(QWidget):
             labelcolor="white",
         )
         self.figure.tight_layout(rect=[0, 0.08, 1, 1])
+
+        # store daily data for tooltips
+        self._daily_data = daily
+        self._daily_count = daily_count
+        self._tick_labels = x_labels
+        self._tick_days = days
+
+        # connect hover event (disconnect previous if any)
+        if self._hover_cid is not None:
+            self.canvas.mpl_disconnect(self._hover_cid)
+        self._hover_cid = self.canvas.mpl_connect("motion_notify_event", self._on_bar_hover)
+
         self.canvas.draw()
+
+    # ── tooltip on x-tick hover ──────────────────────────────────────────── #
+
+    def _on_bar_hover(self, event):
+        """Show a QToolTip with raw day data when hovering near an x-tick label."""
+        if event.inaxes is None and event.x is not None and event.y is not None:
+            # user is in the margin area (where tick labels live)
+            ax = self.figure.axes[0] if self.figure.axes else None
+            if ax is None:
+                return
+            # find the closest tick by x pixel coordinate
+            best_idx = None
+            best_dist = float("inf")
+            for idx, tick in enumerate(ax.get_xticklabels()):
+                bbox = tick.get_window_extent(self.canvas.get_renderer())
+                cx = (bbox.x0 + bbox.x1) / 2
+                cy = (bbox.y0 + bbox.y1) / 2
+                dist = ((event.x - cx) ** 2 + (event.y - cy) ** 2) ** 0.5
+                if dist < best_dist:
+                    best_dist = dist
+                    best_idx = idx
+
+            # only show if cursor is reasonably close (within 30 px)
+            if best_idx is not None and best_dist < 30 and best_idx < len(self._tick_days):
+                day_key = self._tick_days[best_idx]
+                d = self._daily_data.get(day_key)
+                cnt = self._daily_count.get(day_key, 1)
+                if d:
+                    tip = (
+                        f"📅 {day_key}\n"
+                        f"{'─' * 28}\n"
+                        f"Verbrauch:   Ø {d['loadval']/cnt:,.0f} W  (Σ {d['loadval']:,.0f} W)\n"
+                        f"PV:          Ø {d['pv']/cnt:,.0f} W  (Σ {d['pv']:,.0f} W)\n"
+                        f"Einspeisung: Ø {d['grid_feed_in']/cnt:,.0f} W  (Σ {d['grid_feed_in']:,.0f} W)\n"
+                        f"Netzbezug:   Ø {d['grid_purchase']/cnt:,.0f} W  (Σ {d['grid_purchase']:,.0f} W)\n"
+                        f"{'─' * 28}\n"
+                        f"Datenpunkte: {cnt}"
+                    )
+                    global_pos = self.canvas.mapToGlobal(QPoint(int(event.x), int(self.canvas.height() - event.y)))
+                    QToolTip.showText(global_pos, tip, self.canvas)
+                    return
+
+        QToolTip.hideText()
 
     # --------------------------------------------------------------------- #
 
