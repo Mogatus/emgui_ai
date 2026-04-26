@@ -105,10 +105,10 @@ class DashboardWidget(QWidget):
 
         # ── KPI cards ────────────────────────────────────────────────────── #
         cards = QHBoxLayout()
-        self.card_load = KpiCard("Verbrauch", color="#e74c3c")
-        self.card_pv = KpiCard("PV-Erzeugung", color="#f1c40f")
-        self.card_feed = KpiCard("Einspeisung", color="#2ecc71")
-        self.card_purchase = KpiCard("Netzbezug", color="#3498db")
+        self.card_load = KpiCard("Ø Verbrauch", color="#e74c3c")
+        self.card_pv = KpiCard("Ø PV-Erzeugung", color="#f1c40f")
+        self.card_feed = KpiCard("Ø Einspeisung", color="#2ecc71")
+        self.card_purchase = KpiCard("Ø Netzbezug", color="#3498db")
         self.card_autarky = KpiCard("Autarkie", value="–", unit="%", color="#9b59b6")
 
         for card in (self.card_load, self.card_pv, self.card_feed, self.card_purchase, self.card_autarky):
@@ -158,12 +158,33 @@ class DashboardWidget(QWidget):
     def _update_kpis(self, readings: list[MeterReading]):
         if not readings:
             for card in (self.card_load, self.card_pv, self.card_feed, self.card_purchase, self.card_autarky):
-                card.set_value("–")
+                card.set_value("–", subtitle="")
             return
 
-        latest = readings[-1]
-        self.card_load.set_value(f"{latest.loadval or 0:,}")
-        self.card_pv.set_value(f"{latest.pv or 0:,}")
-        self.card_feed.set_value(f"{latest.grid_feed_in or 0:,}")
-        self.card_purchase.set_value(f"{latest.grid_purchase or 0:,}")
-        self.card_autarky.set_value(f"{latest.autarky:.1f}")
+        # ── averages over the selected period ────────────────────────────── #
+        n = len(readings)
+        avg_load = sum(r.loadval or 0 for r in readings) / n
+        avg_pv = sum(r.pv or 0 for r in readings) / n
+        avg_feed = sum(r.grid_feed_in or 0 for r in readings) / n
+        avg_purchase = sum(r.grid_purchase or 0 for r in readings) / n
+
+        # average autarky over period
+        total_load = sum(r.loadval or 0 for r in readings)
+        total_purchase = sum(r.grid_purchase or 0 for r in readings)
+        if total_load > 0:
+            avg_autarky = max(0.0, min(100.0, (1 - total_purchase / total_load) * 100))
+        else:
+            avg_autarky = 100.0
+
+        # ── energy totals (kWh) – assume ~1 reading/min ─────────────────── #
+        factor = 1 / 60_000  # W-minutes → kWh
+        kwh_load = sum(r.loadval or 0 for r in readings) * factor
+        kwh_pv = sum(r.pv or 0 for r in readings) * factor
+        kwh_feed = sum(r.grid_feed_in or 0 for r in readings) * factor
+        kwh_purchase = sum(r.grid_purchase or 0 for r in readings) * factor
+
+        self.card_load.set_value(f"{avg_load:,.0f}", subtitle=f"Σ {kwh_load:,.1f} kWh")
+        self.card_pv.set_value(f"{avg_pv:,.0f}", subtitle=f"Σ {kwh_pv:,.1f} kWh")
+        self.card_feed.set_value(f"{avg_feed:,.0f}", subtitle=f"Σ {kwh_feed:,.1f} kWh")
+        self.card_purchase.set_value(f"{avg_purchase:,.0f}", subtitle=f"Σ {kwh_purchase:,.1f} kWh")
+        self.card_autarky.set_value(f"{avg_autarky:.1f}", subtitle=f"Ø über {n} Werte")

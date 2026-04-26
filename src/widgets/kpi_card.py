@@ -50,11 +50,18 @@ class KpiCard(QFrame):
         self._unit_label.setStyleSheet("color: #888;")
         self._unit_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        self._sub_label = QLabel("")
+        self._sub_label.setFont(QFont("Segoe UI", 8))
+        self._sub_label.setStyleSheet("color: #666;")
+        self._sub_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
         layout.addWidget(self._title_label)
         layout.addWidget(self._value_label)
         layout.addWidget(self._unit_label)
+        layout.addWidget(self._sub_label)
 
-    def set_value(self, value: str, unit: str | None = None):
+    def set_value(self, value: str, unit: str | None = None, subtitle: str = ""):
         self._value_label.setText(value)
         if unit is not None:
             self._unit_label.setText(unit)
+        self._sub_label.setText(subtitle)
