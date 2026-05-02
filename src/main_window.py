@@ -1,9 +1,9 @@
 """Main application window – tab-based layout."""
 
-from typing import Optional
+from typing import Optional, cast
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction, QFont, QIcon
+from PyQt6.QtGui import QAction, QCloseEvent, QFont, QIcon
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -100,7 +100,7 @@ class MainWindow(QMainWindow):
         self.db = Database()
 
         # apply global dark theme
-        QApplication.instance().setStyleSheet(_GLOBAL_STYLE)
+        cast(QApplication, QApplication.instance()).setStyleSheet(_GLOBAL_STYLE)
 
         self._build_ui()
         self._build_menu()
@@ -122,9 +122,11 @@ class MainWindow(QMainWindow):
 
     def _build_menu(self):
         menu_bar = self.menuBar()
+        assert menu_bar is not None
 
         # Datei
         file_menu = menu_bar.addMenu("&Datei")
+        assert file_menu is not None
 
         refresh_action = QAction("Aktualisieren", self)
         refresh_action.setShortcut("F5")
@@ -140,6 +142,7 @@ class MainWindow(QMainWindow):
 
         # Hilfe
         help_menu = menu_bar.addMenu("&Hilfe")
+        assert help_menu is not None
         about_action = QAction("Über", self)
         about_action.triggered.connect(self._show_about)
         help_menu.addAction(about_action)
@@ -167,6 +170,6 @@ class MainWindow(QMainWindow):
 
     # ── lifecycle ─────────────────────────────────────────────────────────── #
 
-    def closeEvent(self, event):
+    def closeEvent(self, a0: Optional[QCloseEvent]) -> None:
         self.db.close()
-        super().closeEvent(event)
+        super().closeEvent(a0)
