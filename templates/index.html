@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energie-Monitor</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+            color: #cdd6f4;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #2d2d44;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            border: 1px solid #444;
+        }
+        thead {
+            background: #1e1e2e;
+        }
+        th {
+            padding: 1rem 1rem;
+            text-align: right;
+            font-weight: 600;
+            color: #aaa;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #444;
+        }
+        th:first-child {
+            text-align: left;
+        }
+        td {
+            padding: 0.9rem 1rem;
+            text-align: right;
+            font-size: 0.95rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        td:first-child {
+            text-align: left;
+            font-weight: 600;
+            color: #cdd6f4;
+        }
+        tbody tr:hover {
+            background: rgba(52, 152, 219, 0.1);
+        }
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .val-load { color: #e74c3c; }
+        .val-pv { color: #f1c40f; }
+        .val-feed { color: #2ecc71; }
+        .val-purchase { color: #3498db; }
+        .val-autarky { color: #9b59b6; font-weight: 700; }
+        .unit {
+            font-size: 0.75rem;
+            color: #888;
+            margin-left: 0.2rem;
+        }
+        .sub {
+            display: block;
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 2px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: #5a6a8a;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚡ Energie-Monitor</h1>
+        <p class="subtitle">Übersicht – identisch zur Desktop-Anwendung</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Zeitraum</th>
+                    <th>Ø Verbrauch</th>
+                    <th>Ø PV-Erzeugung</th>
+                    <th>Ø Einspeisung</th>
+                    <th>Ø Netzbezug</th>
+                    <th>Autarkie</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in table_data %}
+                <tr>
+                    <td>{{ row.label }}<span class="sub">{{ row.num_readings }} Datenpunkte</span></td>
+                    <td class="val-load">{{ "{:,}".format(row.avg_load_w) }}<span class="unit">W</span><span class="sub">Σ {{ row.kwh_load }} kWh</span></td>
+                    <td class="val-pv">{{ "{:,}".format(row.avg_pv_w) }}<span class="unit">W</span><span class="sub">Σ {{ row.kwh_pv }} kWh</span></td>
+                    <td class="val-feed">{{ "{:,}".format(row.avg_feed_w) }}<span class="unit">W</span><span class="sub">Σ {{ row.kwh_feed }} kWh</span></td>
+                    <td class="val-purchase">{{ "{:,}".format(row.avg_purchase_w) }}<span class="unit">W</span><span class="sub">Σ {{ row.kwh_purchase }} kWh</span></td>
+                    <td class="val-autarky">{{ row.autarky_pct }}<span class="unit">%</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <p class="footer">Aktualisiert: {{ updated.strftime('%d.%m.%Y %H:%M:%S') }}</p>
+    </div>
+</body>
+</html>
